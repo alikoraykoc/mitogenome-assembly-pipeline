@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Conda
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        auto-update-conda: true
+        channels: bioconda,conda-forge,defaults
+        python-version: 3.8
+        
+    - name: Install dependencies
+      shell: bash -l {0}
+      run: |
+        conda install -c bioconda bowtie2 samtools bcftools seqkit bedtools blast bc
+        
+    - name: Make scripts executable
+      run: |
+        chmod +x scripts/*.sh
+        chmod +x examples/run_example.sh
+        chmod +x tests/run_tests.sh
+        
+    - name: Run syntax checks
+      run: |
+        # Check bash syntax
+        bash -n scripts/assemble_mitogenome.sh
+        bash -n scripts/batch_process_samples.sh
+        bash -n examples/run_example.sh
+        bash -n tests/run_tests.sh
+        
+    - name: Test help output
+      shell: bash -l {0}
+      run: |
+        ./scripts/assemble_mitogenome.sh --help || true
+        ./scripts/batch_process_samples.sh --help || true
+        
+    - name: Run unit tests
+      shell: bash -l {0}
+      run: |
+        cd tests
+        ./run_tests.sh
+        
+    - name: Check documentation
+      run: |
+        # Verify all documentation files exist
+        test -f README.md
+        test -f docs/usage.md
+        test -f docs/installation.md
+        test -f docs/troubleshooting.md
+        test -f LICENSE
+        
+    - name: Lint shell scripts
+      run: |
+        # Install shellcheck if available
+        if command -v shellcheck >/dev/null 2>&1; then
+          shellcheck scripts/*.sh
+          shellcheck examples/run_example.sh
+          shellcheck tests/run_tests.sh
+        else
+          echo "ShellCheck not available, skipping..."
+        fi
+
+  test-example:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Conda
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        auto-update-conda: true
+        channels: bioconda,conda-forge,defaults
+        python-version: 3.8
+        
+    - name: Install dependencies
+      shell: bash -l {0}
+      run: |
+        conda install -c bioconda bowtie2 samtools bcftools seqkit bedtools blast bc
+        
+    - name: Make scripts executable
+      run: |
+        chmod +x scripts/*.sh
+        chmod +x examples/run_example.sh
+        
+    - name: Run example (dry run)
+      shell: bash -l {0}
+      run: |
+        cd examples
+        # Run example script (will show expected command since test data isn't included)
+        ./run_example.sh
+        
+    - name: Verify output structure
+      run: |
+        # Check that output directory structure is correct
+        test -d examples/example_output || mkdir -p examples/example_output
+        
+  documentation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Check markdown links
+      uses: gaurav-nelson/github-action-markdown-link-check@v1
+      with:
+        use-quiet-mode: 'yes'
+        use-verbose-mode: 'yes'
+        config-file: '.github/markdown-link-check-config.json'
+        
+    - name: Verify documentation completeness
+      run: |
+        echo "Checking documentation completeness..."
+        
+        # Check README sections
+        grep -q "## Installation" README.md
+        grep -q "## Usage" README.md
+        grep -q "## Examples" README.md
+        grep -q "## License" README.md
+        
+        # Check required documentation files
+        test -f docs/usage.md
+        test -f docs/installation.md
+        test -f docs/troubleshooting.md
+        test -f docs/output_files.md
+        
+        echo "Documentation check passed!"

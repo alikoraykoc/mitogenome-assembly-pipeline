@@ -1,0 +1,171 @@
+# Mitogenome Assembly Pipeline .gitignore
+
+# ==========================================
+# BIOINFORMATICS DATA FILES
+# ==========================================
+
+# Raw sequencing data
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+*.sra
+
+# Reference genomes (unless they're small examples)
+*.fasta
+*.fa
+*.fas
+*.fna
+!examples/example_data/reference_example.fasta
+
+# Assembly outputs (keep only examples)
+*.consensus.fasta
+*.scaffolds.fasta
+*.contigs.fasta
+!examples/example_output/*.fasta
+
+# Alignment files
+*.sam
+*.bam
+*.bai
+*.cram
+
+# Variant files  
+*.vcf
+*.vcf.gz
+*.bcf
+*.tbi
+
+# Index files
+*.bt2
+*.bt2l
+*.fai
+*.amb
+*.ann
+*.bwt
+*.pac
+*.sa
+
+# Coverage files
+*_coverage.txt
+*_depth.txt
+
+# Log files (except examples)
+*_log.txt
+*.log
+!examples/example_output/*_log.txt
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# ==========================================
+# SYSTEM FILES
+# ==========================================
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Linux
+*~
+.directory
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ==========================================
+# DEVELOPMENT FILES  
+# ==========================================
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.sublime-*
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# ==========================================
+# PIPELINE OUTPUTS
+# ==========================================
+
+# Result directories (except examples)
+results/
+output/
+assemblies/
+batch_results/
+!examples/example_output/
+
+# QC reports (except examples)
+*_QC_report.txt
+*_assembly_stats.txt
+!examples/example_output/*_QC_report.txt
+!examples/example_output/*_assembly_stats.txt
+
+# Intermediate files
+*.sorted.bam
+*.calls.vcf.gz
+*.consensus.raw.fasta
+*.lowdp.mask.bed
+
+# ==========================================
+# PACKAGE MANAGERS
+# ==========================================
+
+# Conda
+.conda/
+conda-meta/
+.snakemake/
+
+# Python (if any Python scripts are added)
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# ==========================================
+# DOCUMENTATION BUILD
+# ==========================================
+
+# Sphinx documentation
+docs/_build/
+docs/build/
+
+# Jekyll (GitHub Pages)
+_site/
+.sass-cache/
+.jekyll-cache/
+.jekyll-metadata
+
+# ==========================================
+# SECRETS AND CONFIG
+# ==========================================
+
+# API keys and secrets
+.env
+*.key
+*.pem
+config.local.*
+secrets.txt
+
+# Personal notes
+NOTES.md
+TODO.md
+personal/
