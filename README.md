@@ -2,7 +2,7 @@
 
 A robust pipeline for assembling mitochondrial genomes from Illumina paired-end sequencing data using reference-guided mapping. Designed specifically for phylogenetic research with comprehensive quality control and validation.
 
-## 🎯 Features
+## Features
 
 - **Reference-guided assembly** using Bowtie2, SAMtools, and BCFtools
 - **Comprehensive quality control** with publication-ready metrics
@@ -56,7 +56,7 @@ cd mitogenome-assembly-pipeline
 chmod +x scripts/*.sh
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Basic Usage
 
@@ -95,7 +95,7 @@ cd examples/
 # and what outputs to expect
 ```
 
-## 📊 Output Files
+## Output Files
 
 | File | Description |
 |------|-------------|
@@ -108,7 +108,7 @@ cd examples/
 
 ⭐ = Essential files for publication
 
-## 📋 Parameters
+## Parameters
 
 ### Required Parameters
 - `--r1`: Forward reads (FASTQ, gzipped supported)
@@ -140,7 +140,7 @@ phylogenetic research. GitHub repository:
 https://github.com/alikoraykoc/mitogenome-assembly-pipeline
 ```
 
-## 📈 Validation
+## Validation
 
 This pipeline has been validated with:
 - **Orthoptera species** producing assemblies of 15-17 kb
@@ -148,7 +148,7 @@ This pipeline has been validated with:
 - **Publication-quality assemblies** with minimal ambiguous bases
 - **High AT content** appropriate for arthropod mitogenomes
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Run test suite
@@ -158,7 +158,7 @@ cd tests/
 # Expected: All tests pass with sample data
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -182,7 +182,7 @@ cd tests/
 
 See [troubleshooting guide](docs/troubleshooting.md) for detailed solutions.
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTING.md) and submit pull requests for any improvements.
 
