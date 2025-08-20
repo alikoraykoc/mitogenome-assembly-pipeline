@@ -12,7 +12,7 @@ A robust pipeline for assembling mitochondrial genomes from Illumina paired-end 
 - **Batch processing** support for multiple samples
 - **Detailed logging** and error handling
 
-## 🔧 Installation
+## Installation
 
 ### Prerequisites
 
