@@ -19,10 +19,10 @@ A robust pipeline for assembling mitochondrial genomes from Illumina paired-end 
 The pipeline requires the following tools to be installed and available in your PATH:
 
 **Required:**
-- [Bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) (≥2.4.0)
-- [SAMtools](http://samtools.sourceforge.net/) (≥1.10)
+- [Bowtie2](https://bowtie-bio.sourceforge.net/bowtie2/) (≥2.4.0)
+- [SAMtools](https://samtools.readthedocs.io/) (≥1.10)
 - [BCFtools](https://samtools.github.io/bcftools/) (≥1.10)
-- [bc](https://www.gnu.org/software/bc/) (for calculations)
+- [bc](https://en.wikipedia.org/wiki/Bc_(programming_language)) (for calculations)
 
 **Optional (recommended):**
 - [SeqKit](https://bioinf.shenwei.me/seqkit/) (for enhanced statistics)
@@ -33,7 +33,7 @@ The pipeline requires the following tools to be installed and available in your 
 
 ```bash
 # Clone the repository
-git clone https://github.com/username/mitogenome-assembly-pipeline.git
+git clone https://github.com/alikoraykoc/mitogenome-assembly-pipeline.git
 cd mitogenome-assembly-pipeline
 
 # Make scripts executable
@@ -51,7 +51,7 @@ conda create -n mitogenome-pipeline -c bioconda bowtie2 samtools bcftools seqkit
 conda activate mitogenome-pipeline
 
 # Clone and setup
-git clone https://github.com/username/mitogenome-assembly-pipeline.git
+git clone https://github.com/alikoraykoc/mitogenome-assembly-pipeline.git
 cd mitogenome-assembly-pipeline
 chmod +x scripts/*.sh
 ```
@@ -137,7 +137,7 @@ If you use this pipeline in your research, please cite:
 ```
 Ali Koray Koç (2025). Mitogenome Assembly Pipeline: A robust tool for 
 phylogenetic research. GitHub repository: 
-https://github.com/username/mitogenome-assembly-pipeline
+https://github.com/alikoraykoc/mitogenome-assembly-pipeline
 ```
 
 ## 📈 Validation
@@ -189,7 +189,7 @@ Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTIN
 ### Development Setup
 
 ```bash
-git clone https://github.com/username/mitogenome-assembly-pipeline.git
+git clone https://github.com/alikoraykoc/mitogenome-assembly-pipeline.git
 cd mitogenome-assembly-pipeline
 # Make your changes
 # Test thoroughly
@@ -208,6 +208,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- 🐛 [Report bugs](https://github.com/username/mitogenome-assembly-pipeline/issues)
-- 💬 [Ask questions](https://github.com/username/mitogenome-assembly-pipeline/discussions)
+- 🐛 [Report bugs](https://github.com/alikoraykoc/mitogenome-assembly-pipeline/issues)
+- 💬 [Ask questions](https://github.com/alikoraykoc/mitogenome-assembly-pipeline/discussions)
 - 📧 Contact: [kocalikoray@gmail.com]
