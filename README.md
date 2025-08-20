@@ -84,7 +84,7 @@ chmod +x scripts/*.sh
   --mask-lowdp
 ```
 
-### Example Usage
+### Usage
 
 ```bash
 # Run the included example (requires your own test data)
@@ -199,12 +199,6 @@ cd mitogenome-assembly-pipeline
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Developed for phylogenetic research in Orthoptera
-- Tested with *Tetrix* species mitogenomes
-- Built with standard bioinformatics tools (Bowtie2, SAMtools, BCFtools)
 
 ## 📞 Support
 
