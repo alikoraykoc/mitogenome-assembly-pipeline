@@ -20,6 +20,49 @@ MAX_N_PERCENT=5  # maximum percentage of Ns allowed
 EXPECTED_SIZE_MIN=15000  # minimum expected mitogenome size (bp)
 EXPECTED_SIZE_MAX=20000  # maximum expected mitogenome size (bp)
 
+# ==== Help ====
+show_usage() {
+    cat << 'USAGE'
+Usage: bash assemble_mitogenome.sh --r1 R1.fq.gz --r2 R2.fq.gz --ref ref.fasta --prefix NAME [OPTIONS]
+
+Required Arguments:
+  --r1 FILE               Forward reads file (FASTQ, gzipped supported)
+  --r2 FILE               Reverse reads file (FASTQ, gzipped supported)
+  --ref FILE              Reference mitogenome (FASTA format)
+  --prefix NAME           Sample identifier
+
+Optional Arguments:
+  --outdir DIR            Output directory (default: results)
+  --threads INT           Number of CPU threads (default: 4)
+  --sensitivity STR       Bowtie2 sensitivity (default: --very-sensitive-local)
+  --min-mq INT            Minimum mapping quality (default: 30)
+  --min-bq INT            Minimum base quality (default: 20)
+  --min-dp INT            Minimum depth for variant calling (default: 10)
+  --af FLOAT              Minimum allele frequency (default: 0.90)
+  --min-cov INT           Minimum average coverage (default: 10)
+  --min-breadth FLOAT     Minimum coverage breadth (default: 0.95)
+  --max-n-percent INT     Maximum N content percentage (default: 5)
+  --expected-size-min INT Minimum expected size (default: 15000)
+  --expected-size-max INT Maximum expected size (default: 20000)
+  --handle-ambiguous      Handle heterozygous sites as ambiguous
+  --mask-lowdp            Mask low-depth regions with N
+  --help, -h              Show this help message
+
+Examples:
+  # Basic usage
+  bash assemble_mitogenome.sh --r1 sample_R1.fq.gz --r2 sample_R2.fq.gz --ref ref.fasta --prefix my_sample
+  
+  # Research-quality assembly
+  bash assemble_mitogenome.sh --r1 sample_R1.fq.gz --r2 sample_R2.fq.gz --ref ref.fasta --prefix my_sample --min-cov 20 --min-breadth 0.98
+USAGE
+}
+
+# Check for help or no arguments
+if [[ $# -eq 0 ]] || [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then
+    show_usage
+    exit 0
+fi
+
 # ==== Parse args ====
 while [[ $# -gt 0 ]]; do
   case $1 in
