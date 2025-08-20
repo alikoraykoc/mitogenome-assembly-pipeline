@@ -19,8 +19,8 @@ A robust pipeline for assembling mitochondrial genomes from Illumina paired-end 
 The pipeline requires the following tools to be installed and available in your PATH:
 
 **Required:**
-- [Bowtie2](https://bowtie-bio.sourceforge.net/bowtie2/) (≥2.4.0)
-- [SAMtools](https://samtools.readthedocs.io/) (≥1.10)
+- [Bowtie2](https://github.com/BenLangmead/bowtie2) (≥2.4.0)
+- [SAMtools](https://github.com/samtools/samtools) (≥1.10)
 - [BCFtools](https://samtools.github.io/bcftools/) (≥1.10)
 - [bc](https://en.wikipedia.org/wiki/Bc_(programming_language)) (for calculations)
 
