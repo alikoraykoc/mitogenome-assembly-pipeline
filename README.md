@@ -209,5 +209,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 - 🐛 [Report bugs](https://github.com/alikoraykoc/mitogenome-assembly-pipeline/issues)
-- 💬 [Ask questions](https://github.com/alikoraykoc/mitogenome-assembly-pipeline/discussions)
+
 - 📧 Contact: [kocalikoray@gmail.com]
