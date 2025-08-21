@@ -8,7 +8,6 @@ A robust pipeline for assembling mitochondrial genomes from Illumina paired-end 
 - **Comprehensive quality control** with publication-ready metrics
 - **Automated validation** of assembly completeness and quality
 - **Phylogenetic research ready** with detailed reporting
-- **Publication-quality output** suitable for peer review
 - **Batch processing** support for multiple samples
 - **Detailed logging** and error handling
 
@@ -100,13 +99,12 @@ cd examples/
 | File | Description |
 |------|-------------|
 | `{PREFIX}.consensus.fasta` | **Final mitogenome assembly** |
-| `{PREFIX}_QC_report.txt` | **Quality control summary** ⭐ |
-| `{PREFIX}_assembly_stats.txt` | **Assembly statistics** ⭐ |
+| `{PREFIX}_QC_report.txt` | **Quality control summary**  |
+| `{PREFIX}_assembly_stats.txt` | **Assembly statistics**  |
 | `{PREFIX}_coverage.txt` | Per-base coverage data |
 | `{PREFIX}.calls.filtered.vcf.gz` | High-quality variants |
 | `{PREFIX}_log.txt` | Complete analysis log |
 
-⭐ = Essential files for publication
 
 ## Parameters
 
@@ -139,14 +137,6 @@ Ali Koray Koç (2025). Mitogenome Assembly Pipeline: A robust tool for
 phylogenetic research. GitHub repository: 
 https://github.com/alikoraykoc/mitogenome-assembly-pipeline
 ```
-
-## Validation
-
-This pipeline has been validated with:
-- **Orthoptera species** producing assemblies of 15-17 kb
-- **Complete gene complements** (37 mitochondrial genes)
-- **Publication-quality assemblies** with minimal ambiguous bases
-- **High AT content** appropriate for arthropod mitogenomes
 
 ## Testing
 
