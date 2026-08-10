@@ -5,6 +5,7 @@ A robust pipeline for assembling mitochondrial genomes from Illumina paired-end 
 ## Features
 
 - **Reference-guided assembly** using Bowtie2, SAMtools, and BCFtools
+- **Reference-bias safe** — sites without read support are masked to `N`, never filled from the reference
 - **Comprehensive quality control** with publication-ready metrics
 - **Automated validation** of assembly completeness and quality
 - **Phylogenetic research ready** with detailed reporting
@@ -25,7 +26,6 @@ The pipeline requires the following tools to be installed and available in your 
 
 **Optional (recommended):**
 - [SeqKit](https://bioinf.shenwei.me/seqkit/) (for enhanced statistics)
-- [bedtools](https://bedtools.readthedocs.io/) (for masking low-depth regions)
 - [BLAST+](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download) (for contamination screening)
 
 ### Quick Install
@@ -46,7 +46,7 @@ chmod +x scripts/*.sh
 
 ```bash
 # Create conda environment
-conda create -n mitogenome-pipeline -c bioconda bowtie2 samtools bcftools seqkit bedtools blast bc
+conda create -n mitogenome-pipeline -c bioconda bowtie2 samtools bcftools seqkit blast bc
 conda activate mitogenome-pipeline
 
 # Clone and setup
@@ -79,9 +79,16 @@ chmod +x scripts/*.sh
   --threads 8 \
   --min-cov 20 \
   --min-breadth 0.98 \
-  --max-n-percent 2 \
-  --mask-lowdp
+  --max-n-percent 2
 ```
+
+> **Uncovered sites are masked to `N` by default.** Reference-guided assembly
+> works by applying variants to the reference sequence, so any position without
+> read support would otherwise be emitted as the *reference's* base rather than
+> your sample's — inflating similarity to the reference taxon in a way that is
+> invisible in the output. `--no-mask` disables this; see
+> [the usage guide](docs/usage.md#a-note-on-masking-and-reference-bias) before
+> you do.
 
 ### Usage
 
