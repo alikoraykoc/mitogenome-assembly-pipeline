@@ -14,7 +14,7 @@ MIN_BREADTH=0.98
 MAX_N_PERCENT=2
 EXPECTED_SIZE_MIN=15000
 EXPECTED_SIZE_MAX=20000
-MASK_LOWDP=false
+NO_MASK=false
 PARALLEL_JOBS=1
 
 # ==== Usage Function ====
@@ -37,7 +37,8 @@ Optional Arguments:
   --max-n-percent INT   Maximum N% (default: 2)
   --expected-size-min INT  Min expected size (default: 15000)
   --expected-size-max INT  Max expected size (default: 20000)
-  --mask-lowdp          Mask low-depth regions
+  --no-mask             Disable masking of low-coverage sites (not recommended:
+                        uncovered sites then carry the reference's bases)
 
 Sample List Format:
 sample1<TAB>data/sample1_R1.fastq.gz<TAB>data/sample1_R2.fastq.gz<TAB>reference1.fasta
@@ -63,7 +64,7 @@ while [[ $# -gt 0 ]]; do
         --max-n-percent) MAX_N_PERCENT="$2"; shift ;;
         --expected-size-min) EXPECTED_SIZE_MIN="$2"; shift ;;
         --expected-size-max) EXPECTED_SIZE_MAX="$2"; shift ;;
-        --mask-lowdp) MASK_LOWDP=true ;;
+        --no-mask) NO_MASK=true ;;
         --help|-h) usage ;;
         *) echo "Unknown option: $1"; usage ;;
     esac
@@ -172,8 +173,8 @@ process_sample() {
     cmd="$cmd --expected-size-min $EXPECTED_SIZE_MIN"
     cmd="$cmd --expected-size-max $EXPECTED_SIZE_MAX"
     
-    if [[ "$MASK_LOWDP" == "true" ]]; then
-        cmd="$cmd --mask-lowdp"
+    if [[ "$NO_MASK" == "true" ]]; then
+        cmd="$cmd --no-mask"
     fi
     
     # Run assembly
@@ -191,12 +192,25 @@ process_sample() {
             local coverage="Unknown"
             local completeness="Unknown"
             
+            # AT content is computed here rather than read from the QC report,
+            # which has never emitted an "AT content:" line. Ns are excluded so
+            # that masked sites do not depress the figure.
+            at_content=$(grep -v '^>' "$consensus" | tr -d '\n' | tr '[:lower:]' '[:upper:]' \
+                | awk '{
+                    n = gsub(/N/, ""); at = gsub(/[AT]/, ""); gc = gsub(/[GC]/, "")
+                    if (at + gc > 0) printf "%.2f%%", at * 100 / (at + gc); else printf "Unknown"
+                  }')
+            [[ -z "$at_content" ]] && at_content="Unknown"
+
             # Try to extract statistics from QC report
             if [[ -f "$qc_report" ]]; then
-                at_content=$(grep "AT content:" "$qc_report" | grep -o "[0-9.]*%" | head -1 || echo "Unknown")
-                coverage=$(grep "Average coverage:" "$qc_report" | grep -o "[0-9.]*" | head -1 || echo "Unknown")
-                
-                if grep -q "✅.*PASS" "$qc_report"; then
+                coverage=$(sed -n 's/^ *Average coverage: *\([0-9.]*\).*/\1/p' "$qc_report" | head -1)
+                [[ -z "$coverage" ]] && coverage="Unknown"
+
+                # Match on the single verdict line the assembly script emits.
+                # A bare "✅.*PASS" search matched any one passing check, so a
+                # sample that failed most of them still reported PASS.
+                if grep -q "^✅ ASSEMBLY COMPLETE" "$qc_report"; then
                     completeness="PASS"
                 else
                     completeness="WARNING"
@@ -220,7 +234,7 @@ process_sample() {
 # Export function for parallel processing
 export -f process_sample
 export MAIN_SCRIPT OUTDIR THREADS MIN_COV MIN_BREADTH MAX_N_PERCENT
-export EXPECTED_SIZE_MIN EXPECTED_SIZE_MAX MASK_LOWDP BATCH_LOG SUMMARY_FILE FAILED_SAMPLES
+export EXPECTED_SIZE_MIN EXPECTED_SIZE_MAX NO_MASK BATCH_LOG SUMMARY_FILE FAILED_SAMPLES
 
 # Process samples in parallel
 if command -v parallel >/dev/null 2>&1; then
@@ -230,7 +244,7 @@ else
     echo "GNU parallel not available, processing sequentially..." | tee -a "$BATCH_LOG"
     
     # Sequential processing
-    while IFS=\t' read -r sample_name r1_path r2_path ref_name; do
+    while IFS=$'\t' read -r sample_name r1_path r2_path ref_name; do
         # Skip empty lines and comments
         [[ -z "$sample_name" || "$sample_name" =~ ^# ]] && continue
         
