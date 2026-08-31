@@ -13,7 +13,7 @@ MIN_MQ=30       # mpileup -q (min mapping quality)
 MIN_BQ=20       # mpileup -Q (min base quality)
 MIN_DP=10       # min sample depth after calling
 AF_CUT=0.90     # required ALT allele fraction (haploid)
-MASK_LOWDP=false # low-depth to N
+MASK_LOWDP=true # low-depth and zero-coverage to N (see --no-mask)
 MIN_COV=10      # minimum average coverage for QC
 MIN_BREADTH=0.95 # minimum breadth of coverage (fraction)
 MAX_N_PERCENT=5  # maximum percentage of Ns allowed
@@ -44,8 +44,10 @@ Optional Arguments:
   --max-n-percent INT     Maximum N content percentage (default: 5)
   --expected-size-min INT Minimum expected size (default: 15000)
   --expected-size-max INT Maximum expected size (default: 20000)
-  --handle-ambiguous      Handle heterozygous sites as ambiguous
-  --mask-lowdp            Mask low-depth regions with N
+  --handle-ambiguous      Emit IUPAC ambiguity codes at mixed sites
+  --mask-lowdp            Mask sites below --min-dp with N (default: on)
+  --no-mask               Disable masking. NOT RECOMMENDED: uncovered sites
+                          then carry the REFERENCE base, not your sample's
   --help, -h              Show this help message
 
 Examples:
@@ -79,6 +81,7 @@ while [[ $# -gt 0 ]]; do
     --min-dp) MIN_DP="$2"; shift ;;
     --af) AF_CUT="$2"; shift ;;
     --mask-lowdp) MASK_LOWDP=true ;;
+    --no-mask) MASK_LOWDP=false ;;
     --min-cov) MIN_COV="$2"; shift ;;
     --min-breadth) MIN_BREADTH="$2"; shift ;;
     --max-n-percent) MAX_N_PERCENT="$2"; shift ;;
@@ -106,7 +109,6 @@ done
 
 # Check if required tools are available
 REQUIRED_TOOLS=(bowtie2 samtools bcftools)
-OPTIONAL_TOOLS=(bedtools seqkit blastn)
 
 for tool in "${REQUIRED_TOOLS[@]}"; do
     if ! command -v "$tool" >/dev/null 2>&1; then
@@ -118,11 +120,9 @@ done
 # Check optional tools
 SEQKIT_AVAILABLE=false
 BLAST_AVAILABLE=false
-BEDTOOLS_AVAILABLE=false
 
 if command -v seqkit >/dev/null 2>&1; then SEQKIT_AVAILABLE=true; fi
 if command -v blastn >/dev/null 2>&1; then BLAST_AVAILABLE=true; fi
-if command -v bedtools >/dev/null 2>&1; then BEDTOOLS_AVAILABLE=true; fi
 
 mkdir -p "$OUTDIR"
 LOG="$OUTDIR/${PREF}_log.txt"
@@ -131,7 +131,6 @@ BAM="$OUTDIR/${PREF}.bam"
 SORT="$OUTDIR/${PREF}.sorted.bam"
 VCF="$OUTDIR/${PREF}.calls.vcf.gz"
 VCF_FILT="$OUTDIR/${PREF}.calls.filtered.vcf.gz"
-CONS_RAW="$OUTDIR/${PREF}.consensus.raw.fasta"
 CONS="$OUTDIR/${PREF}.consensus.fasta"
 COV="$OUTDIR/${PREF}_coverage.txt"
 MASKBED="$OUTDIR/${PREF}.lowdp.mask.bed"
@@ -192,9 +191,18 @@ check_coverage_quality() {
         return 1
     fi
     
-    # Calculate coverage statistics
-    local avg_cov=$(awk '{sum+=$3; count++} END {if(count>0) print sum/count; else print 0}' "$cov_file")
-    local ref_len=$(wc -l < "$cov_file")
+    # Reference length comes from the .fai, never from the depth file: a line
+    # count only measures positions that have reads, which shrinks the
+    # denominator in lockstep with the numerator and pins breadth near 1.0.
+    local ref_len=$(awk '{sum+=$2} END {print sum+0}' "${REF}.fai")
+    if [[ "$ref_len" -eq 0 ]]; then
+        echo "ERROR: Could not determine reference length from ${REF}.fai" | tee -a "$QC_REPORT"
+        return 1
+    fi
+
+    # $COV is generated with -aa, so every reference position has a row and
+    # the mean is taken over the whole reference including zero-depth sites.
+    local avg_cov=$(awk -v n="$ref_len" '{sum+=$3} END {print sum/n}' "$cov_file")
     local covered_bases=$(awk -v min_dp="$MIN_DP" '$3 >= min_dp {count++} END {print count+0}' "$cov_file")
     local breadth=$(echo "scale=4; $covered_bases / $ref_len" | bc -l)
     
@@ -330,12 +338,23 @@ samtools index "$SORT" 2>>"$LOG"
 
 # 5) Coverage analysis with QC
 echo "[4] coverage analysis" | tee -a "$LOG"
-samtools depth "$SORT" > "$COV" 2>>"$LOG"
+samtools faidx "$REF" 2>>"$LOG"
+
+# -aa emits every reference position, including those with zero reads. Without
+# it those positions are simply absent, so they can never be masked and end up
+# carrying the reference base into the consensus.
+# NOTE: samtools depth takes -q as base quality and -Q as mapping quality --
+# the opposite of bcftools mpileup below. Matching the two keeps a region
+# covered only by low-MAPQ reads from looking deep here while contributing
+# nothing to variant calling.
+samtools depth -aa -q "$MIN_BQ" -Q "$MIN_MQ" "$SORT" > "$COV" 2>>"$LOG"
 
 # QC: Check coverage quality
 echo "[QC] Coverage quality check" | tee -a "$LOG"
+QC_FAILED=false
 if ! check_coverage_quality "$COV"; then
     echo "WARNING: Coverage QC failed - check $QC_REPORT" | tee -a "$LOG"
+    QC_FAILED=true
 fi
 
 # 6) Variant calling
@@ -362,26 +381,48 @@ echo "  Total variants: $(bcftools view -H "$VCF" | wc -l)" >> "$QC_REPORT"
 echo "  Filtered variants: $(bcftools view -H "$VCF_FILT" | wc -l)" >> "$QC_REPORT"
 echo "" >> "$QC_REPORT"
 
-# 8) Consensus generation
-echo "[7] consensus generation" | tee -a "$LOG"
-if $HANDLE_AMB; then
-  bcftools consensus -H 1 -f "$REF" "$VCF_FILT" > "$CONS_RAW" 2>>"$LOG"
+# 8) Build the low-coverage mask
+#
+# bcftools consensus starts from the reference and only edits positions named
+# in the VCF. It has no notion of depth, so an uncovered position is emitted as
+# the reference base rather than as an N. The mask below is what distinguishes
+# "this sample matches the reference here" from "we have no evidence here".
+if $MASK_LOWDP; then
+  echo "[7] build low-coverage mask" | tee -a "$LOG"
+  awk -v m="$MIN_DP" '($3<m){printf "%s\t%d\t%d\n",$1,$2-1,$2}' "$COV" > "$MASKBED"
+  MASKED_BASES=$(wc -l < "$MASKBED" | xargs)
+  echo "MASKING:" >> "$QC_REPORT"
+  echo "  Sites below ${MIN_DP}x masked with N: ${MASKED_BASES}" >> "$QC_REPORT"
+  echo "" >> "$QC_REPORT"
 else
-  bcftools consensus -f "$REF" "$VCF_FILT" > "$CONS_RAW" 2>>"$LOG"
+  echo "[7] masking disabled (--no-mask)" | tee -a "$LOG"
+  echo "MASKING:" >> "$QC_REPORT"
+  echo "  ⚠️  DISABLED: uncovered sites carry the REFERENCE base, not the sample's." >> "$QC_REPORT"
+  echo "     Do not use this assembly for phylogenetic inference." >> "$QC_REPORT"
+  echo "" >> "$QC_REPORT"
+  echo "[WARNING] Masking disabled - uncovered sites will carry reference bases" | tee -a "$LOG"
 fi
 
-# 9) Optional masking
-if $MASK_LOWDP; then
-  echo "[8] mask low-depth regions" | tee -a "$LOG"
-  awk -v m="$MIN_DP" '($3<m){printf "%s\t%d\t%d\n",$1,$2-1,$2}' "$COV" > "$MASKBED"
-  if [[ -s "$MASKBED" && "$BEDTOOLS_AVAILABLE" == "true" ]]; then
-    bedtools maskfasta -fi "$CONS_RAW" -bed "$MASKBED" -fo "$CONS" 2>>"$LOG"
-    echo "  Masked $(wc -l < "$MASKBED") low-depth regions" >> "$QC_REPORT"
+# 9) Consensus generation
+#
+# Extra arguments are forwarded through "$@" rather than an array, so the
+# unmasked path stays safe under `set -u` on bash 3.2 (the system bash on macOS).
+run_consensus() {
+  if $HANDLE_AMB; then
+    bcftools consensus --iupac-codes -f "$REF" "$@" "$VCF_FILT"
   else
-    cp "$CONS_RAW" "$CONS"
+    bcftools consensus -f "$REF" "$@" "$VCF_FILT"
   fi
+}
+
+echo "[8] consensus generation" | tee -a "$LOG"
+if $MASK_LOWDP; then
+  # The mask goes to bcftools rather than being applied afterwards: the BED is
+  # in reference coordinates, while a finished consensus has already shifted by
+  # every indel applied to it.
+  run_consensus -m "$MASKBED" --mask-with N > "$CONS" 2>>"$LOG"
 else
-  cp "$CONS_RAW" "$CONS"
+  run_consensus > "$CONS" 2>>"$LOG"
 fi
 
 # 10) Fix FASTA header
@@ -402,6 +443,7 @@ echo "" >> "$QC_REPORT"
 # Validate assembly
 if ! validate_assembly "$CONS"; then
     echo "WARNING: Assembly validation failed - check $QC_REPORT" | tee -a "$LOG"
+    QC_FAILED=true
 fi
 
 # Basic contamination check
@@ -411,11 +453,18 @@ check_contamination "$CONS"
 echo "=== FINAL QC SUMMARY ===" >> "$QC_REPORT"
 LEN=$(grep -v '^>' "$CONS" | tr -d '\n' | wc -c | xargs)
 
-if [[ $LEN -ge $EXPECTED_SIZE_MIN && $LEN -le $EXPECTED_SIZE_MAX ]]; then
+# Length alone says nothing here -- the consensus is always reference-length by
+# construction, so it must not be the sole basis for a pass.
+if [[ $LEN -lt $EXPECTED_SIZE_MIN || $LEN -gt $EXPECTED_SIZE_MAX ]]; then
+    QC_FAILED=true
+fi
+
+if [[ "$QC_FAILED" == "false" ]]; then
     echo "✅ ASSEMBLY COMPLETE: $CONS (${LEN} bp)" >> "$QC_REPORT"
     echo "[SUCCESS] Assembly completed: $CONS (${LEN} bp)" | tee -a "$LOG"
 else
     echo "⚠️  ASSEMBLY COMPLETED WITH WARNINGS: $CONS (${LEN} bp)" >> "$QC_REPORT"
+    echo "   Review the warnings above before using this sequence." >> "$QC_REPORT"
     echo "[WARNING] Assembly completed with issues: $CONS (${LEN} bp)" | tee -a "$LOG"
 fi
 
@@ -435,4 +484,4 @@ echo "📈 Assembly Statistics: $STATS"
 echo "🧬 Final Assembly: $CONS (${LEN} bp)"
 
 # Clean up intermediate files
-rm -f "$BAM" "$CONS_RAW"
+rm -f "$BAM"

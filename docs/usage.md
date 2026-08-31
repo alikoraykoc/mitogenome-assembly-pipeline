@@ -50,8 +50,27 @@
 ### Special Options
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `--handle-ambiguous` | `false` | Handle heterozygous sites as ambiguous |
-| `--mask-lowdp` | `false` | Mask low-depth regions with N |
+| `--handle-ambiguous` | `false` | Emit IUPAC ambiguity codes at mixed sites |
+| `--mask-lowdp` | `true` | Mask sites below `--min-dp` with N (on by default) |
+| `--no-mask` | — | Disable masking (**not recommended**, see below) |
+
+### A note on masking and reference bias
+
+Reference-guided assembly builds the consensus by starting from the reference
+and applying called variants to it. Nothing in that process knows about
+coverage, so a position with no reads is indistinguishable from a position that
+genuinely matches the reference — both come out as the reference base.
+
+Masking is what separates the two. Every position with depth below `--min-dp`
+(including positions with zero reads) becomes an `N`, so the consensus asserts
+a base only where there is evidence for one. This is on by default.
+
+`--no-mask` turns it off. The result is a sequence in which uncovered regions
+silently carry the reference's bases rather than your sample's. In a
+phylogenetic analysis this pulls the sample artificially toward the reference
+taxon, and the effect is invisible in the output — the sequence looks complete
+and gap-free. Only use `--no-mask` if you have a specific reason to and know
+how the gaps will be handled downstream.
 
 ## Usage Examples
 
@@ -75,8 +94,7 @@
   --threads 12 \
   --min-cov 25 \
   --min-breadth 0.99 \
-  --max-n-percent 1 \
-  --mask-lowdp
+  --max-n-percent 1
 ```
 
 ### 3. Orthoptera-Specific Parameters

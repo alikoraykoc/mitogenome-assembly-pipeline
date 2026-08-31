@@ -23,7 +23,7 @@ conda install -c bioconda bowtie2 samtools bcftools bc
 
 ### Optional Tools (Recommended)
 ```bash
-conda install -c bioconda seqkit bedtools blast
+conda install -c bioconda seqkit blast
 ```
 
 ## Installation
